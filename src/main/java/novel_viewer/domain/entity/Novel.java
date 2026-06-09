@@ -27,7 +27,6 @@ public class Novel {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.totalEpisodes = 0;
     }
 
     @PreUpdate
