@@ -18,6 +18,11 @@ public class NovelController {
     private final NovelParsingService novelParsingService;
     private final NovelRepository novelRepository;
 
+    @GetMapping
+    public ResponseEntity<?> listNovels() {
+        return ResponseEntity.ok(novelRepository.findAll());
+    }
+
     @PostMapping("/parse")
     public ResponseEntity<?> newNovelParsing() {
         try {
