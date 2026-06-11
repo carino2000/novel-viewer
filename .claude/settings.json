@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(mvn *)",
+      "Bash(java *)",
+      "Bash(git *)",
+      "Bash(mysql *)",
+      "Bash(npm *)",
+      "Bash(node *)",
+      "Bash(npx *)"
+    ]
+  }
+}

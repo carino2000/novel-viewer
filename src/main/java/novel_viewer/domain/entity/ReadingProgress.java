@@ -1,5 +1,8 @@
 package novel_viewer.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +19,7 @@ public class ReadingProgress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long progressId;
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "novel_id")
     private Novel novel;
@@ -23,6 +27,7 @@ public class ReadingProgress {
     private Integer paragraphIndex;
     private Integer lastUpdatedEpisode;
     private LocalDateTime lastReadAt;
+    @Getter(onMethod_ = {@JsonRawValue, @JsonProperty("relations")})
     @Column(columnDefinition = "JSON")
     private String relationsJson;
 
