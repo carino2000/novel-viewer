@@ -5,8 +5,8 @@
 밀리의서재처럼 소설을 읽게 해주는 웹앱이며, 오른쪽 패널에서 AI 기능을 제공한다.
 
 ## 기술 스택
-- **Backend**: Spring Boot (Java 21, Maven)
-- **Frontend**: Next.js
+- **Backend**: Spring Boot (Java 21, Maven) — 현재 작업 경로
+- **Frontend**: Next.js — 경로: `C:\Users\carin\Desktop\Jihoon\Himedia\01_project\project-novel-viewer\novel-viewer-ui` (별도 Claude 담당)
 - **Database**: MySQL (DB명: novel_viewer, 인코딩: utf8mb4)
 - **AI**: Claude API (platform.claude.com 별도 결제)
 - **개발환경**: 로컬 PC (배포 없음)
@@ -65,14 +65,25 @@
 ```
 novel_viewer/
 ├── controller/
-│   ├── NovelController.java   — 파싱, 삭제
-│   └── EpisodeController.java — 회차 조회
+│   ├── NovelController.java          — 파싱, 삭제, 목록
+│   ├── EpisodeController.java        — 회차 조회
+│   ├── CharacterController.java      — 인물 목록/검색
+│   ├── AiController.java             — AI 업데이트
+│   ├── ReadingProgressController.java — 읽기 진행상황
+│   ├── EpisodeSummaryController.java — 요약 조회
+│   └── MemoController.java           — 메모 CRUD
 ├── service/
-│   ├── NovelParsingService.java — txt 파싱 & DB 저장
-│   └── EpisodeService.java      — 회차 조회
+│   ├── NovelParsingService.java  — txt 파싱 & DB 저장
+│   ├── EpisodeService.java       — 회차 조회
+│   ├── AiUpdateService.java      — Claude API 호출, 인물/요약/관계도 저장
+│   ├── CharacterService.java     — 인물 카테고리별 검색 (이름/클래스/능력)
+│   └── ReadingProgressService.java — 읽기 진행상황 조회/저장
+├── config/
+│   ├── AnthropicConfig.java — AnthropicClient Bean, ObjectMapper Bean
+│   └── CorsConfig.java      — CORS 허용 origin 설정
 └── domain/
-    ├── entity/   — Novel, Episode, ReadingProgress, Character, EpisodeSummary, Memo
-    └── repository/ — 각 엔티티별 JpaRepository
+    ├── entity/      — Novel, Episode, ReadingProgress, Character, EpisodeSummary, Memo
+    └── repository/  — 각 엔티티별 JpaRepository
 ```
 
 ## JPA 엔티티 규칙
@@ -93,6 +104,7 @@ novel_viewer/
 | PUT | `/api/reading-progress` | 읽기 진행상황 저장 `{novelId, currentEpisode, paragraphIndex}` |
 | POST | `/api/ai/update?novelId=1` | AI 업데이트 (인물/요약/관계도 한번에) |
 | GET | `/api/character?novelId=1` | 인물 목록 조회 |
+| GET | `/api/character/search?novelId=1&name=검` | 인물 카테고리별 검색 (이름/클래스/고유능력/특수능력/잠재능력) |
 | GET | `/api/summary?novelId=1&episodeNumber=5` | 에피소드 요약 조회 |
 | GET | `/api/memo?novelId=1` | 메모 목록 조회 |
 | POST | `/api/memo` | 메모 생성 `{novelId, title, content, episodeNumber}` |
@@ -103,7 +115,7 @@ novel_viewer/
 1. ~~JPA 엔티티 전체 작성~~ (완료)
 2. ~~소설 파싱 & DB 적재 API 구현~~ (완료)
 3. ~~Claude API 연동 & 나머지 API 전체 구현~~ (완료)
-4. 프론트엔드 연동 (mock 데이터 → 실제 API 교체)
+4. ~~프론트엔드 연동 (mock 데이터 → 실제 API 교체)~~ (완료)
 
 ---
 
@@ -128,6 +140,16 @@ novel_viewer/
 - 프론트엔드 API 연동: `src/api.js`, `App.jsx`, `NovelViewer.jsx`, `SidePanel.jsx`, 각 탭 컴포넌트 모두 실제 API로 교체
 - `NovelViewer.jsx` 스크롤 저장: `scrollIntoView` 옵션에 `block: 'start'` 추가 (복원 위치 정확도 개선)
 - AI 업데이트 동작 확인: 메모라이즈 9화까지 김수현 스탯/능력 정상 저장 검증
+
+### 2026-06-11
+- `CharacterService` 신규 생성: 인물 카테고리별 검색 (이름/클래스/고유능력/특수능력/잠재능력 부분 일치)
+- `CharacterController` 수정: `detail` 엔드포인트 삭제, `search` 엔드포인트 추가 (`GET /api/character/search?novelId=1&name=검`)
+  - Java 인메모리 필터링으로 `abilitiesJson` 내 `className`, 고유/특수/잠재 능력명 검색
+  - 매칭 없는 카테고리는 응답에서 제외
+- `AiUpdateService` 토큰 한도 초과 방지: 1회 최대 50화(`MAX_EPISODES_PER_UPDATE`) 처리
+  - 초과 구간은 다음 AI 업데이트 시 이어서 처리, `hasMore` 필드로 프론트에 알림
+- `CorsConfig` 수정: `59.13.19.232:3000`, `59.13.19.232:4173` 추가 (로컬 IP 기반 접근 허용)
+- `novel-viewer-ui/src/api.js` IP 오타 수정: `59.13.199.232` → `59.13.19.232`
 
 ### 2026-06-10
 - `anthropic-java:2.34.0` 의존성 추가 (pom.xml)

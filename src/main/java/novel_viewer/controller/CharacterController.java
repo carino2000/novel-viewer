@@ -2,10 +2,9 @@ package novel_viewer.controller;
 
 import lombok.RequiredArgsConstructor;
 import novel_viewer.domain.repository.CharacterRepository;
+import novel_viewer.service.CharacterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @CrossOrigin
 @RestController
@@ -14,16 +13,15 @@ import java.util.Map;
 public class CharacterController {
 
     private final CharacterRepository characterRepository;
+    private final CharacterService characterService;
 
     @GetMapping
     public ResponseEntity<?> list(@RequestParam Long novelId) {
         return ResponseEntity.ok(characterRepository.findByNovel_NovelId(novelId));
     }
 
-    @GetMapping("/detail")
-    public ResponseEntity<?> detail(@RequestParam Long novelId, @RequestParam String name) {
-        return characterRepository.findByNovel_NovelIdAndName(novelId, name)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/search")
+    public ResponseEntity<?> search(@RequestParam Long novelId, @RequestParam String keyword) {
+        return ResponseEntity.ok(characterService.search(novelId, keyword));
     }
 }
