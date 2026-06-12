@@ -31,6 +31,8 @@ public class AiUpdateService {
     private final EpisodeSummaryRepository episodeSummaryRepository;
     private final ObjectMapper objectMapper;
 
+    private static final int MAX_EPISODES_PER_UPDATE = 50;
+
     @Transactional
     public AiUpdateResult update(Long novelId) {
         Novel novel = novelRepository.findById(novelId)
@@ -47,30 +49,36 @@ public class AiUpdateService {
                     "새로 읽은 에피소드가 없습니다. (마지막 업데이트: " + progress.getLastUpdatedEpisode() + "화)");
         }
 
+        // 토큰 한도 초과 방지: 1회 최대 50화 처리
+        int cappedTo = Math.min(toEpisode, fromEpisode + MAX_EPISODES_PER_UPDATE - 1);
+        boolean hasMore = cappedTo < toEpisode;
+
         List<Episode> episodes = episodeRepository
-                .findByNovel_NovelIdAndEpisodeNumberBetweenOrderByEpisodeNumberAsc(novelId, fromEpisode, toEpisode);
+                .findByNovel_NovelIdAndEpisodeNumberBetweenOrderByEpisodeNumberAsc(novelId, fromEpisode, cappedTo);
 
         if (episodes.isEmpty()) {
             throw new IllegalStateException(
-                    "해당 범위의 에피소드를 찾을 수 없습니다 (" + fromEpisode + "~" + toEpisode + "화).");
+                    "해당 범위의 에피소드를 찾을 수 없습니다 (" + fromEpisode + "~" + cappedTo + "화).");
         }
 
         List<Character> existingCharacters = characterRepository.findByNovel_NovelId(novelId);
-        int paragraphIndex = progress.getParagraphIndex() != null ? progress.getParagraphIndex() : 0;
+        int paragraphIndex = (cappedTo == toEpisode && progress.getParagraphIndex() != null)
+                ? progress.getParagraphIndex() : 0;
 
-        String rawResponse = callClaude(novel, episodes, existingCharacters, fromEpisode, toEpisode, paragraphIndex);
+        String rawResponse = callClaude(novel, episodes, existingCharacters, fromEpisode, cappedTo, paragraphIndex);
         AiResponseJson response = parseResponse(rawResponse);
 
-        saveCharacters(novel, response.characters(), toEpisode);
-        saveSummary(novel, response.summary(), toEpisode);
-        updateProgress(progress, response.relations(), toEpisode);
+        saveCharacters(novel, response.characters(), cappedTo);
+        saveSummary(novel, response.summary(), cappedTo);
+        updateProgress(progress, response.relations(), cappedTo);
 
         return new AiUpdateResult(
                 response.characters() != null ? response.characters().size() : 0,
                 response.summary(),
                 response.relations() != null ? response.relations().size() : 0,
                 fromEpisode,
-                toEpisode
+                cappedTo,
+                hasMore
         );
     }
 
@@ -365,6 +373,7 @@ public class AiUpdateService {
             String summary,
             int relationCount,
             int fromEpisode,
-            int toEpisode
+            int toEpisode,
+            boolean hasMore
     ) {}
 }
